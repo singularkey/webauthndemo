@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Singular Key WebAuthn Demo</title>
+
+    <style>
+
+        .container {
+        }
+
+        .logo {
+            margin-bottom: 10px;
+        }
+
+        .formcontainer {
+            background: #fafafa;
+            padding: 15px;
+            min-width: 70%;
+        }
+
+        .subContainer {
+            display: flex;
+            justify-content: center;
+        }
+
+        .dashboardContainer {
+            background: #fafafa;
+            padding: 15px;
+            text-align:center;
+        }
+
+        .skButton {
+            border: 0.1rem solid #99c852;
+            border-radius: .4rem;
+            color: #fff;
+            cursor: pointer;
+            display: inline-block;
+            font-size: 1.1rem;
+            font-weight: 700;
+            height: 3.8rem;
+            letter-spacing: .1rem;
+            line-height: 3.8rem;
+            padding: 0 3.0rem;
+            text-align: center;
+            text-decoration: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            background-color: #99c852;
+            margin-bottom: 10px;
+            font-family: sf Pro display;
+
+        }
+
+        .skInput {
+            background-color: transparent;
+            border: 0.1rem solid #d1d1d1;
+            border-radius: .4rem;
+            box-shadow: none;
+            box-sizing: inherit;
+            height: 3.8rem;
+            margin-bottom: 10px;
+            width: 98%;
+            font-size: 20px;
+            color: darkslategray;
+            padding-left: 10px;
+        }
+
+        .skLink {
+            font-family: sf Pro display;
+           color: #424edb;
+            font-weight: 200;
+            font-size: 20px;
+        }
+
+        h3 {
+            font-weight: 300;
+            margin-bottom: 2.0rem;
+            margin-top: 0;
+            font-size: 30px;
+            font-family: sf Pro display;
+        }
+        label {
+            font-weight: 200;
+            font-family: sf Pro display;
+            margin-bottom: 10px;
+            margin-top: 0;
+            font-size: 25px;
+        }
+
+        .errorContainer {
+            margin-bottom: 10px;
+            color: red;
+        }
+    </style>
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <script src="js/base64url-arraybuffer.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <img class="logo" width=200 src="./skLogo.png"/>
+    <div class="subContainer" id="registerContainer">
+        <div class="formcontainer">
+            <h3>Register User</h3>
+            <form id="register" name="register">
+                <label>Name</label>
+                <input class="skInput" type="text" name="Name"  onblur="document.authenticate.Name.value = this.value;">
+                <div class="errorContainer" id="registerError"> </div>
+
+                <input class="skButton" type="submit" value="Register">
+            </form>
+
+            <a href="#" style="text-decoration:none" id="toLogin"><span class="skLink">Already registered? Login here.</span></a>
+        </div>
+    </div>
+
+
+
+    <div class="subContainer" id="loginContainer">
+        <div class="formcontainer">
+            <h3>Authenticate User</h3>
+            <form id="authenticate" name="authenticate">
+                <label>Name</label>
+                <input class="skInput" type="text" name="Name">
+                <div class="errorContainer" id="authError"> </div>
+                <input class="skButton" type="submit" value="Login">
+            </form>
+
+            <a href="#"  style="text-decoration:none" id="toRegistration"><span class="skLink">Not registered yet? Register here.</span></a>
+        </div>
+    </div>
+
+    <div class="subContainer" id="dashboardContainer">
+
+        <div class="dashboardContainer">
+            <h3>Logged In!</h3>
+            <button class="skButton" id="logoutButton">Logout</button>
+        </div>
+    </div>
+
+</div>
+
+    <script>
+      /** Helper Functions Start **/
+      /** Yuriy Ackermann <ackermann.yuriy@gmail.com> **/
+       /**
+       * Converts PublicKeyCredential into serialised JSON
+       * @param  {Object} pubKeyCred
+       * @return {Object}            - JSON encoded publicKeyCredential
+       */
+      const publicKeyCredentialToJSON = (pubKeyCred) => {
+        if(pubKeyCred instanceof Array) {
+          let arr = [];
+          for(let i of pubKeyCred)
+            arr.push(publicKeyCredentialToJSON(i));
+
+          return arr
+        }
+
+        if(pubKeyCred instanceof ArrayBuffer) {
+          return base64url.encode(pubKeyCred)
+        }
+
+        if(pubKeyCred instanceof Object) {
+          let obj = {};
+
+          for (let key in pubKeyCred) {
+            obj[key] = publicKeyCredentialToJSON(pubKeyCred[key])
+          }
+
+          return obj
+        }
+
+        return pubKeyCred
+      }
+
+      /**
+       * Decodes arrayBuffer required fields.
+       */
+      const preformatMakeCredReq = (makeCredReq) => {
+        makeCredReq.challenge = base64url.decode(makeCredReq.challenge);
+        makeCredReq.user.id   = base64url.decode(makeCredReq.user.id);
+
+        return makeCredReq
+      }
+
+      /**
+       * Decodes arrayBuffer required fields.
+       */
+      const preformatGetAssertReq = (getAssert) => {
+        getAssert.challenge = base64url.decode(getAssert.challenge);
+
+        for(let allowCred of getAssert.allowCredentials) {
+          allowCred.id = base64url.decode(allowCred.id);
+        }
+
+        return getAssert
+      }
+       /** Helper Functions End **/
+
+      /*
+       * RP Server API Calls to proxy WebAuthn messages to Singular Key Fido Service
+       */
+      const apiCAll = (uri,body) => {
+        return fetch(uri, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        })
+          .then((response) =>response.json())
+          .then((response) => {
+            if (response.statusCode && !(response.statusCode == 200 || response.statusCode == 201))
+              throw response.message
+            return response
+          })
+          .catch(err => {
+            throw err
+          })
+      }
+
+    </script>
+
+
+    <script>
+      /* Handle for register form submission */
+      $('#register').submit(async function(event) {
+        event.preventDefault();
+        document.getElementById("registerError").innerHTML = "";
+        const name = this.Name.value;
+
+        try {
+          //Check if the browser supports WebAuthn
+            if (!(navigator.credentials && navigator.credentials.create)){
+              throw "This browser does not support WebAuthn yet."
+            }
+
+            //'Register Initiate' Relying Party (RP) Server API call which is proxied to Singular Key FIDO Service
+            let initiateResponse = await apiCAll('/register/initiate',{name})
+            console.log(initiateResponse)
+
+            //Re-format the above response to decode certain base64UrlEncoded fields
+            let publicKey = preformatMakeCredReq(initiateResponse.initiateRegistrationResponse);
+
+            //WebAuthn API Call to create a credential (Attestation)
+            let makeCredResponse = await navigator.credentials.create({ publicKey })
+            console.log(makeCredResponse)
+
+            //Re-format the above response to base64Url encode certain fields for transmission
+            let makeCredResponseFormatted = publicKeyCredentialToJSON(makeCredResponse);
+
+            //'Register Complete' RP Server API call which is proxied to Singular Key FIDO Service
+            let completeResponse = await apiCAll('/register/complete',makeCredResponseFormatted)
+            console.log(completeResponse)
+
+            //Now that registration is successful, load the login screen
+            loadScreen('login')
+        } catch(err) {
+          console.log(err)
+          document.getElementById("registerError").innerHTML = err;
+        }
+
+      })
+
+      /* Handle for Authenticate form submission */
+      $('#authenticate').submit(async function(event) {
+        event.preventDefault();
+        document.getElementById("authError").innerHTML = "";
+        const name = this.Name.value;
+
+        try {
+
+          //Check if the browser supports WebAuthn
+          if (!(navigator.credentials && navigator.credentials.get)){
+            throw "This browser does not support WebAuthn yet."
+          }
+
+          //'Authentication Initiate' RP Server API call which is proxied to Singular Key FIDO Service
+          let initiateResponse = await apiCAll('/auth/initiate',{name})
+          console.log(initiateResponse)
+
+          //Re-format the above response to decode certain base64UrlEncoded fields
+          let publicKey = preformatGetAssertReq(initiateResponse);
+
+          //WebAuthn API Call to create an assertion
+          let getCredResponse = await navigator.credentials.get({ publicKey })
+          console.log(getCredResponse)
+
+          //Re-format the above response to base64Url encode certain fields for transmission
+          let getCredResponseFormatted = publicKeyCredentialToJSON(getCredResponse);
+
+          //'Authentication Complete' RP Server API call which is proxied to Singular Key FIDO Service
+          let completeResponse = await apiCAll('/auth/complete',getCredResponseFormatted)
+          console.log(completeResponse)
+
+          if(completeResponse.success){
+            //Now that login is successful, load the dashboard
+            loadScreen('dashboard')
+          }
+        } catch(err) {
+          console.log(err)
+          document.getElementById("authError").innerHTML = err;
+        }
+
+      })
+
+
+    </script>
+
+    <script>
+      $('#toLogin').click(function(e) {
+        e.preventDefault();
+        document.getElementById("authError").innerHTML = "";
+        $('#registerContainer').hide();
+        $('#loginContainer').show();
+        $('#dashboardContainer').hide();
+      })
+
+      $('#toRegistration').click(function(e) {
+        e.preventDefault();
+        document.getElementById("registerError").innerHTML = "";
+        $('#loginContainer').hide();
+        $('#registerContainer').show();
+        $('#dashboardContainer').hide();
+      })
+
+      $('#logoutButton').click(() => {
+        fetch('/logout', {credentials: 'include'});
+        document.getElementById("authError").innerHTML = "";
+        document.getElementById("registerError").innerHTML = "";
+        $('#registerContainer').hide();
+        $('#dashboardContainer').hide();
+        $('#loginContainer').show();
+      })
+
+      const loadScreen = (name) => {
+        if (name == 'login') {
+          document.getElementById("authError").innerHTML = "";
+          $('#registerContainer').hide();
+          $('#loginContainer').show();
+          $('#dashboardContainer').hide();
+        } else if (name == 'register') {
+          document.getElementById("registerError").innerHTML = "";
+          $('#registerContainer').show();
+          $('#loginContainer').hide();
+          $('#dashboardContainer').hide();
+        } if (name == 'dashboard') {
+          document.getElementById("authError").innerHTML = "";
+          document.getElementById("registerError").innerHTML = "";
+          $('#registerContainer').hide();
+          $('#loginContainer').hide();
+          $('#dashboardContainer').show();
+        }
+      }
+    </script>
+
+    <script>
+      $(document).ready(() => {
+         return loadScreen('register')
+      })
+    </script>
+
+
+</body>
+</html>

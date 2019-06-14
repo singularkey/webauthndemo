@@ -252,3 +252,6 @@ router.post('/auth/complete', async (req, res) => {
 ------------
 # Support
 Have questions? Please contact Support (`support@singularkey.com`) or sign up at http://singularkey.com/singular-key-web-authn-fido-developer-program-api/
+
+# License
+MIT

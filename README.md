@@ -14,7 +14,7 @@ Edit `webauthndemo/server/config.json`
 ```Js
 "singularkeyApiKey":"SINGULAR_KEY_API_KEY_HERE"
 ```
-Please contact Support (`support@singularkey.com`) for and API Key or sign up at http://singularkey.com/singular-key-web-authn-fido-developer-program-api/
+Please contact Support (`support@singularkey.com`) for an API Key or sign up at http://singularkey.com/singular-key-web-authn-fido-developer-program-api/
 
 ### Run
 ```js

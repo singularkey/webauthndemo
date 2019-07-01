@@ -31,7 +31,7 @@ router.post('/register/initiate', async (req, res) => {
   let options;
   if (!db[name].skUserId) {
     try {
-      const response = await singularKeyAPICall('/users',{name})
+      const response = await singularKeyAPICall('/users',{username:name})
       const parsedResponse = JSON.parse(response)
       db[name].skUserId = parsedResponse.userId;
     }
@@ -96,7 +96,7 @@ router.post('/auth/initiate', async (req, res) => {
 
   //Singular Key FIDO2 Authentication Initiate API call
   try {
-    const response = await singularKeyAPICall(`/users/${db[name].skUserId}/credentials/fido2/auth/initiate`,{name})
+    const response = await singularKeyAPICall(`/users/${db[name].skUserId}/credentials/fido2/auth/initiate`)
     const parsedResponse = JSON.parse(response)
     res.status(200).json(parsedResponse);
   }

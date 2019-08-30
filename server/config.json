@@ -1,5 +1,10 @@
 {
   "port": 3001,
   "singularKeyUrl":"https://devapi.singularkey.com/v1",
-  "singularkeyApiKey": "ADD_SINGULARKEY_API_KEY_HERE"
+  "singularkeyApiKey": "ADD_SINGULARKEY_API_KEY_HERE",
+  "https":{
+    "enabled":false,
+    "keyFilePath":"PATH_TO_SSL_KEY_FILE",
+    "certFilePath":"PATH_TO_SSL_CERT_FILE"
+  }
 }

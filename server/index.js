@@ -36,6 +36,7 @@ router.post('/register/initiate', async (req, res) => {
       db[name].skUserId = parsedResponse.userId;
     }
     catch(err) {
+      console.log(err)
       return res.status(400).json(err)
     }
   }
@@ -43,11 +44,13 @@ router.post('/register/initiate', async (req, res) => {
 
   //Singular Key FIDO2 Register Initiate API call
   try {
-    const response = await singularKeyAPICall(`/users/${db[name].skUserId}/credentials/fido2/register/initiate`)
+    const response = await singularKeyAPICall(`/users/${db[name].skUserId}/credentials/fido2/register/initiate`,req.body)
     const parsedResponse = JSON.parse(response)
+    console.log(parsedResponse)
     res.status(200).json(parsedResponse);
   }
   catch(err) {
+    console.log(err)
     res.status(400).json(err)
   }
 
@@ -60,8 +63,7 @@ Relying Party Route proxy WebAuthn register/complete request to Singular Key FID
 router.post('/register/complete', async (req, res) => {
   console.log("*** Incoming Request ***")
   console.log(req.route.path)
-  let name = req.session.name;
-
+  let name = req.session.name || req.cookies.name;
   if (!db[name]) {
     return res.status(400).json({message:"User not found",statusCode:400})
   }
@@ -70,9 +72,11 @@ router.post('/register/complete', async (req, res) => {
   try {
     const response = await singularKeyAPICall(`/users/${db[name].skUserId}/credentials/fido2/register/complete`,req.body)
     const parsedResponse = JSON.parse(response)
+    console.log(parsedResponse)
     res.status(200).json(parsedResponse);
   }
   catch(err) {
+    console.log(err)
     res.status(400).json(err)
   }
 })
@@ -98,9 +102,11 @@ router.post('/auth/initiate', async (req, res) => {
   try {
     const response = await singularKeyAPICall(`/users/${db[name].skUserId}/credentials/fido2/auth/initiate`)
     const parsedResponse = JSON.parse(response)
+    console.log(parsedResponse)
     res.status(200).json(parsedResponse);
   }
   catch(err) {
+    console.log(err)
     res.status(400).json(err)
   }
 })
@@ -112,7 +118,7 @@ router.post('/auth/complete', async (req, res) => {
   console.log("*** Incoming Request ***")
   console.log(req.route.path)
 
-  let name = req.session.name;
+  let name = req.session.name  || req.cookies.name;
 
   if (!db[name]) {
     return res.status(400).json({message:"User not found. Please register a user first.",statusCode:400})
@@ -125,9 +131,11 @@ router.post('/auth/complete', async (req, res) => {
     if (parsedResponse.success) {
       req.session.isLoggedIn = true
     }
+    console.log(parsedResponse)
     res.status(200).json(parsedResponse);
   }
   catch(err) {
+    console.log(err)
     res.status(400).json(err)
   }
 })

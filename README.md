@@ -16,6 +16,11 @@ Edit `webauthndemo/server/config.json`
 ```
 Please contact Support (`support@singularkey.com`) for an API Key or sign up at http://singularkey.com/singular-key-web-authn-fido-developer-program-api/
 
+##### Singular Key FIDO2 Settings  (https://devportal.singularkey.com)
+* There are several settings in the FIDO2 Section in your client app in the Singular Key Admin Portal. Log into the Admin portal using the credentials provided to you.
+    * `Supported Origin Domain Name`: Update this list to include the origin you're accessing the demo from. For example, `http://localhost:3001` or `https://login.example.com`.  If the origin is not whitelisted here, you'll see a client mismatch error in the RP Server logs.
+
+
 ### Run
 ```js
 cd webauthndemo
